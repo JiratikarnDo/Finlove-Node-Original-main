@@ -32,15 +32,15 @@ def recommend(id):
     x = pd.read_sql(sql_query, conn)
 
     # ตรวจสอบให้แน่ใจว่า DataFrame มีคอลัมน์ที่จำเป็น
-    if 'UserID' not in x.columns or 'PreferenceID' not in x.columns:
+    if 'userID' not in x.columns or 'PreferenceID' not in x.columns:
         return jsonify({"error": "Data format error in userpreferences table"}), 500
 
     # ปรับข้อมูลของ userpreferences ให้เป็น pivot table
-    x = x.pivot_table(index='UserID', columns='PreferenceID', aggfunc='size', fill_value=0)
+    x = x.pivot_table(index='userID', columns='PreferenceID', aggfunc='size', fill_value=0)
 
-    # ตรวจสอบว่า UserID ที่ร้องขอมีอยู่ใน DataFrame หรือไม่
+    # ตรวจสอบว่า userID ที่ร้องขอมีอยู่ใน DataFrame หรือไม่
     if id not in x.index:
-        return jsonify({"error": f"UserID {id} not found in preferences table"}), 404
+        return jsonify({"error": f"userID {id} not found in preferences table"}), 404
 
     # แยกข้อมูลสำหรับผู้ใช้ที่ล็อกอินและผู้ใช้อื่น ๆ
     x_login_user = x.loc[[id]]  # ข้อมูลผู้ใช้ที่ล็อกอิน
@@ -61,14 +61,14 @@ def recommend(id):
     # ดึงข้อมูลผู้ใช้แนะนำที่ยังไม่ได้จับคู่หรือบล็อก
     sql_query = f'''
     SELECT 
-        u.UserID, 
+        u.userID, 
         u.nickname, 
         u.imageFile,
         u.verify
     FROM user u
-    LEFT JOIN matches m ON (m.user1ID = u.UserID AND m.user2ID = {id}) OR (m.user2ID = u.UserID AND m.user1ID = {id})
-    LEFT JOIN blocked_chats b ON (b.user1ID = {id} AND b.user2ID = u.UserID) OR (b.user2ID = {id} AND b.user1ID = u.UserID)
-    WHERE u.UserID IN ({recommended_user_ids_str})
+    LEFT JOIN matches m ON (m.user1ID = u.userID AND m.user2ID = {id}) OR (m.user2ID = u.userID AND m.user1ID = {id})
+    LEFT JOIN blocked_chats b ON (b.user1ID = {id} AND b.user2ID = u.userID) OR (b.user2ID = {id} AND b.user1ID = u.userID)
+    WHERE u.userID IN ({recommended_user_ids_str})
       AND m.matchID IS NULL
       AND (b.isBlocked IS NULL OR b.isBlocked = 0)
     '''
@@ -81,7 +81,7 @@ def recommend(id):
         if user['imageFile']:
             recommended_users.at[index, 'imageFile'] = f"http://{request.host}/ai_v2/user/{user['imageFile']}"
 
-    return jsonify(recommended_users[['UserID', 'nickname', 'imageFile', 'verify']].to_dict(orient='records')), 200
+    return jsonify(recommended_users[['userID', 'nickname', 'imageFile', 'verify']].to_dict(orient='records')), 200
 
 
 @app.route('/ai_v2/user/<filename>', methods=['GET'])
